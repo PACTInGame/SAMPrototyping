@@ -117,37 +117,24 @@ def optimiere_trajektorie(mittelpunkte, streckenbreite, prev_offset=0):
     # Parameter für die Erkennung
     kurven_schwellwert = 0.4  # Ab wann ist es eine Kurve?
     vorausschau_schwellwert = 0.1  # Ab wann vorbereiten auf Kurve?
+    soll_verschiebung = 0
+    # Priorität 1: Sind wir in einer Kurve?
+    if abs(kruemmungen[0]) > kurven_schwellwert:
+        # In der Kurve nach innen verschieben
+        richtung = 1 if kruemmungen[0] > 0 else -1
+        faktor = min(1.0, abs(kruemmungen[0]) * 3)
+        soll_verschiebung = max_verschiebung * faktor * richtung
 
-    for i in range(len(mittelpunkte)):
-        # Priorität 1: Sind wir in einer Kurve?
-        if abs(kruemmungen[i]) > kurven_schwellwert:
-            # In der Kurve nach innen verschieben
-            richtung = 1 if kruemmungen[i] > 0 else -1
-            faktor = min(1.0, abs(kruemmungen[i]) * 3)
-            verschiebungen[i] = max_verschiebung * faktor * richtung
 
-        # Priorität 2: Kommt eine Kurve?
-        elif abs(vorausschau[i]) > vorausschau_schwellwert:
-            # Vor der Kurve nach außen verschieben
-            richtung = -1 if vorausschau[i] > 0 else 1  # Gegenteil der Kurvenrichtung
-            faktor = min(1.0, abs(vorausschau[i]) * 5)
-            verschiebungen[i] = max_verschiebung * faktor * richtung
-
-    # 5. Verschiebungen glätten für sanftere Übergänge
-    def glaette_verschiebungen(verschiebungen, iterations=2):
-        n = len(verschiebungen)
-        result = verschiebungen.copy()
-
-        for _ in range(iterations):
-            smoothed = result.copy()
-            for i in range(1, n - 1):
-                # Gleitender Durchschnitt mit Nachbarpunkten
-                smoothed[i] = 0.25 * result[i - 1] + 0.5 * result[i] + 0.25 * result[i + 1]
-            result = smoothed
-
-        return result
-
-    verschiebungen = glaette_verschiebungen(verschiebungen)
+    # Priorität 2: Kommt eine Kurve?
+    elif abs(vorausschau[0]) > vorausschau_schwellwert:
+        # Vor der Kurve nach außen verschieben
+        richtung = -1 if vorausschau[0] > 0 else 1  # Gegenteil der Kurvenrichtung
+        faktor = min(1.0, abs(vorausschau[0]) * 5)
+        soll_verschiebung = max_verschiebung * faktor * richtung
+    print(prev_offset, soll_verschiebung)
+    verschiebungen[0] = prev_offset * 0.75 + soll_verschiebung * 0.25
+    verschiebungen = [verschiebungen[0] for _ in range(len(mittelpunkte))]
 
     # 6. Racing Line erzeugen
     racing_line = []
@@ -160,7 +147,7 @@ def optimiere_trajektorie(mittelpunkte, streckenbreite, prev_offset=0):
         neuer_punkt = (x + nx * verschiebungen[i], y + ny * verschiebungen[i])
         racing_line.append(neuer_punkt)
     current_speed = speeds_for_racing_line(racing_line)
-    return racing_line, current_speed
+    return racing_line, current_speed, verschiebungen[0]
 
 
 def speeds_for_racing_line(racing_line, max_speed=3, min_speed=0.5):
@@ -404,7 +391,7 @@ def speed_to_color(speed, min_speed=0.2, max_speed=3.0):
 
 # Dann in deiner Hauptschleife:
 if __name__ == "__main__":
-    center, right, left = load_coordinates_from_file("../SAMPrototyping/data/Aschheim-track-data.txt")
+    center, right, left = load_coordinates_from_file("data/Aschheim-track-data.txt")
     arrays_of_points = [left, center, right]
 
     # Initial boundaries
@@ -412,7 +399,7 @@ if __name__ == "__main__":
     upper_boundary = 6
 
     # Append initial racing line and get initial speed
-    racing_line, current_speed = optimiere_trajektorie(center[lower_boundary:upper_boundary], 5.9)
+    racing_line, current_speed, offset = optimiere_trajektorie(center[lower_boundary:upper_boundary], 5.9)
     arrays_of_points.append(racing_line)
 
     # Custom labels and colors
@@ -451,7 +438,7 @@ if __name__ == "__main__":
         upper_boundary = i + 6
 
         # Calculate new racing line and get new speed
-        new_racing_line, current_speed, offset = optimiere_trajektorie(center[lower_boundary:upper_boundary], 5.9)
+        new_racing_line, current_speed, previous_offset = optimiere_trajektorie(center[lower_boundary:upper_boundary], 5.9, previous_offset)
 
         # Update the racing line data
         if len(new_racing_line) > 0:
@@ -481,7 +468,7 @@ if __name__ == "__main__":
 
             # Redraw the figure
             fig.canvas.draw_idle()
-            plt.pause(0.5)  # Pause to allow the figure to update
+            plt.pause(1)  # Pause to allow the figure to update
 
     # Keep the plot open after animation completes
     plt.ioff()
