@@ -351,8 +351,8 @@ class AdvancedLaneSystem:
 
     def initialize_camera(self) -> bool:
         """Kamera initialisieren"""
-        self.cap = cv2.VideoCapture(self.camera_index)
-
+        #self.cap = cv2.VideoCapture(self.camera_index)
+        self.cap = cv2.VideoCapture("camera_car.mp4")
         if not self.cap.isOpened():
             print(f"Fehler: Kamera {self.camera_index} kann nicht geöffnet werden")
             return False
@@ -495,7 +495,7 @@ class AdvancedLaneSystem:
 
 
 def main():
-    system = AdvancedLaneSystem(camera_index=0)
+    system = AdvancedLaneSystem(camera_index=2)
     system.run()
 
 
