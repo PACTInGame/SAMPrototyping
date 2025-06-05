@@ -21,7 +21,6 @@ def optimiere_trajektorie(mittelpunkte, streckenbreite, prev_offset=0):
     max_verschiebung = (streckenbreite / 2) * 0.65
 
     # Mindestanzahl von Punkten prüfen
-    # TODO achtung, nicht in C++ übernehmen, wenn points > 3 muss trotzdem speed berechnet werden (wrsl. min speed), und mittelpunkte den last offset nehmen.
     if len(mittelpunkte) < 3:
         return mittelpunkte.copy()
 
@@ -220,7 +219,6 @@ def speeds_for_racing_line(racing_line, max_speed=3, min_speed=0.5):
                 angles[i] = angle
         return angles
 
-    speed = max_speed
     angles = calculate_segment_angles(racing_line)
     #for angle in angles:
     #    if angle > 44:
